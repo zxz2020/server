@@ -356,6 +356,9 @@ class Setup {
 		}
 
 		if(count($error) == 0) {
+			//guess what this does
+			Installer::installShippedApps();
+
 			$config = \OC::$server->getConfig();
 			$config->setAppValue('core', 'installedat', microtime(true));
 			$config->setAppValue('core', 'lastupdatedat', microtime(true));
@@ -371,9 +374,6 @@ class Setup {
 			$userSession->setTokenProvider($defaultTokenProvider);
 			$userSession->login($username, $password);
 			$userSession->createSessionToken($request, $userSession->getUser()->getUID(), $username, $password);
-
-			//guess what this does
-			Installer::installShippedApps();
 
 			// create empty file in data dir, so we can later find
 			// out that this is indeed an ownCloud data directory

@@ -11,6 +11,7 @@
     "files",
     "files_external",
     "files_pdfviewer",
+    "files_primary_s3",
     "files_sharing",
     "files_texteditor",
     "files_trashbin",
