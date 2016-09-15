@@ -191,6 +191,12 @@ class Updater extends BasicEmitter {
 	private function getVendor() {
 		// this should really be a JSON file
 		require \OC::$SERVERROOT . '/version.php';
+
+		if (!isset($vendor)) {
+			// When updating from 9.0.53, 10.0.0 or before.
+			return '';
+		}
+
 		/** @var string $vendor */
 		return (string) $vendor;
 	}
