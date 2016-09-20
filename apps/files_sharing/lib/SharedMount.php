@@ -130,12 +130,12 @@ class SharedMount extends MountPoint implements MoveableMount {
 	 */
 	private function generateUniqueTarget($path, $view, array $mountpoints) {
 		static $stackTraces = [];
-		if (isset($stackTraces[$path])) {
-			\OC::$server->getLogger()->info('Second time creating a unique target for "'.$path.'"');
-			\OC::$server->getLogger()->info('Previous trace: ' . json_encode($stackTraces[$path]));
+		if (isset($stackTraces[$view->getAbsolutePath($path)])) {
+			\OC::$server->getLogger()->info('Second time creating a unique target for "'. $view->getAbsolutePath($path).'"');
+			\OC::$server->getLogger()->info('Previous trace: ' . json_encode($stackTraces[$view->getAbsolutePath($path)]));
 			\OC::$server->getLogger()->info('Current trace: ' . json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)));
 		}
-		$stackTraces[$path] = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+		$stackTraces[$view->getAbsolutePath($path)] = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 		$pathinfo = pathinfo($path);
 		$ext = (isset($pathinfo['extension'])) ? '.'.$pathinfo['extension'] : '';
 		$name = $pathinfo['filename'];
