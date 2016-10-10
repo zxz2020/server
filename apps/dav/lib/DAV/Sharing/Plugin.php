@@ -22,6 +22,7 @@
 
 namespace OCA\DAV\DAV\Sharing;
 
+use OCA\DAV\CalDAV\Calendar;
 use OCA\DAV\Connector\Sabre\Auth;
 use OCA\DAV\DAV\Sharing\Xml\Invite;
 use OCP\IRequest;
@@ -187,15 +188,19 @@ class Plugin extends ServerPlugin {
 	 * @return void
 	 */
 	function propFind(PropFind $propFind, INode $node) {
-		if ($node instanceof IShareable) {
+		if ($node instanceof Calendar) {
+			/** @var Calendar $node */
+			if ($node->isShared()) {
+				return;
+			}
+		}
 
+		if ($node instanceof IShareable) {
 			$propFind->handle('{' . Plugin::NS_OWNCLOUD . '}invite', function() use ($node) {
 				return new Invite(
 					$node->getShares()
 				);
 			});
-
 		}
 	}
-
 }

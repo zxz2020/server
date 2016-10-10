@@ -61,8 +61,13 @@ class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 	 * @param array $add
 	 * @param array $remove
 	 * @return void
+	 * @throws Forbidden
 	 */
 	function updateShares(array $add, array $remove) {
+		if ($this->isShared()) {
+			throw new Forbidden();
+		}
+
 		/** @var CalDavBackend $calDavBackend */
 		$calDavBackend = $this->caldavBackend;
 		$calDavBackend->updateShares($this, $add, $remove);
@@ -114,6 +119,14 @@ class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 				'protected' => true,
 			];
 		}
+		if ($this->isPublic()) {
+			$acl[] = [
+				'privilege' => '{DAV:}read',
+				'principal' => 'principals/system/public',
+				'protected' => true,
+			];
+		}
+
 		if ($this->getOwner() !== parent::getOwner()) {
 			$acl[] =  [
 					'privilege' => '{DAV:}read',
@@ -127,18 +140,13 @@ class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 					'protected' => true,
 				];
 			}
-		}
-		if ($this->isPublic()) {
-			$acl[] = [
-				'privilege' => '{DAV:}read',
-				'principal' => 'principals/system/public',
-				'protected' => true,
-			];
+		} else {
+			/** @var CalDavBackend $calDavBackend */
+			$calDavBackend = $this->caldavBackend;
+			$acl = $calDavBackend->applyShareAcl($this->getResourceId(), $acl);
 		}
 
-		/** @var CalDavBackend $calDavBackend */
-		$calDavBackend = $this->caldavBackend;
-		return $calDavBackend->applyShareAcl($this->getResourceId(), $acl);
+		return $acl;
 	}
 
 	function getChildACL() {
@@ -282,7 +290,7 @@ class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 		return isset($this->calendarInfo['{http://owncloud.org/ns}public']);
 	}
 
-	private function isShared() {
+	public function isShared() {
 		return isset($this->calendarInfo['{http://owncloud.org/ns}owner-principal']);
 	}
 
