@@ -23,6 +23,7 @@
 namespace OCA\DAV\DAV\Sharing;
 
 use OCA\DAV\CalDAV\Calendar;
+use OCA\DAV\CardDAV\AddressBook;
 use OCA\DAV\Connector\Sabre\Auth;
 use OCA\DAV\DAV\Sharing\Xml\Invite;
 use OCP\IRequest;
@@ -188,8 +189,8 @@ class Plugin extends ServerPlugin {
 	 * @return void
 	 */
 	function propFind(PropFind $propFind, INode $node) {
-		if ($node instanceof Calendar) {
-			/** @var Calendar $node */
+		if ($node instanceof Calendar || $node instanceof AddressBook) {
+			/** @var Calendar|AddressBook $node */
 			if ($node->isShared()) {
 				return;
 			}

@@ -64,8 +64,13 @@ class AddressBook extends \Sabre\CardDAV\AddressBook implements IShareable {
 	 * @param array $add
 	 * @param array $remove
 	 * @return void
+	 * @throws Forbidden
 	 */
 	function updateShares(array $add, array $remove) {
+		if ($this->isShared()) {
+			throw new Forbidden();
+		}
+
 		/** @var CardDavBackend $carddavBackend */
 		$carddavBackend = $this->carddavBackend;
 		$carddavBackend->updateShares($this, $add, $remove);
@@ -101,6 +106,14 @@ class AddressBook extends \Sabre\CardDAV\AddressBook implements IShareable {
 				'principal' => $this->getOwner(),
 				'protected' => true,
 			];
+		if ($this->getOwner() === 'principals/system/system') {
+			$acl[] = [
+				'privilege' => '{DAV:}read',
+				'principal' => '{DAV:}authenticated',
+				'protected' => true,
+			];
+		}
+
 		if ($this->getOwner() !== parent::getOwner()) {
 			$acl[] =  [
 					'privilege' => '{DAV:}read',
@@ -114,18 +127,13 @@ class AddressBook extends \Sabre\CardDAV\AddressBook implements IShareable {
 					'protected' => true,
 				];
 			}
-		}
-		if ($this->getOwner() === 'principals/system/system') {
-			$acl[] = [
-					'privilege' => '{DAV:}read',
-					'principal' => '{DAV:}authenticated',
-					'protected' => true,
-			];
+		} else {
+			/** @var CardDavBackend $carddavBackend */
+			$carddavBackend = $this->carddavBackend;
+			$acl = $carddavBackend->applyShareAcl($this->getResourceId(), $acl);
 		}
 
-		/** @var CardDavBackend $carddavBackend */
-		$carddavBackend = $this->carddavBackend;
-		return $carddavBackend->applyShareAcl($this->getResourceId(), $acl);
+		return $acl;
 	}
 
 	function getChildACL() {
