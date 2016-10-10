@@ -151,14 +151,14 @@ class AddressBook extends \Sabre\CardDAV\AddressBook implements IShareable {
 	}
 
 	function getOwner() {
-		if (isset($this->addressBookInfo['{http://owncloud.org/ns}owner-principal'])) {
+		if ($this->isShared()) {
 			return $this->addressBookInfo['{http://owncloud.org/ns}owner-principal'];
 		}
 		return parent::getOwner();
 	}
 
 	function delete() {
-		if (isset($this->addressBookInfo['{http://owncloud.org/ns}owner-principal'])) {
+		if ($this->isShared()) {
 			$principal = 'principal:' . parent::getOwner();
 			$shares = $this->getShares();
 			$shares = array_filter($shares, function($share) use ($principal){
@@ -179,7 +179,7 @@ class AddressBook extends \Sabre\CardDAV\AddressBook implements IShareable {
 	}
 
 	function propPatch(PropPatch $propPatch) {
-		if (isset($this->addressBookInfo['{http://owncloud.org/ns}owner-principal'])) {
+		if ($this->isShared()) {
 			throw new Forbidden();
 		}
 		parent::propPatch($propPatch);
@@ -197,5 +197,9 @@ class AddressBook extends \Sabre\CardDAV\AddressBook implements IShareable {
 			return !$this->addressBookInfo['{http://owncloud.org/ns}read-only'];
 		}
 		return true;
+	}
+
+	public function isShared() {
+		return isset($this->addressBookInfo['{http://owncloud.org/ns}owner-principal']);
 	}
 }
