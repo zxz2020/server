@@ -43,6 +43,7 @@ class RootCollection extends SimpleCollection {
 		$userManager = \OC::$server->getUserManager();
 		$db = \OC::$server->getDatabaseConnection();
 		$dispatcher = \OC::$server->getEventDispatcher();
+		$timeFactory = new \OC\AppFramework\Utility\TimeFactory();
 		$userPrincipalBackend = new Principal(
 			$userManager,
 			\OC::$server->getGroupManager()
@@ -62,7 +63,7 @@ class RootCollection extends SimpleCollection {
 		$systemPrincipals->disableListing = $disableListing;
 		$filesCollection = new Files\RootCollection($userPrincipalBackend, 'principals/users');
 		$filesCollection->disableListing = $disableListing;
-		$caldavBackend = new CalDavBackend($db, $userPrincipalBackend, $userManager, $random, $dispatcher);
+		$caldavBackend = new CalDavBackend($db, $userPrincipalBackend, $userManager, $random, $dispatcher, $config, $timeFactory);
 		$calendarRoot = new CalendarRoot($userPrincipalBackend, $caldavBackend, 'principals/users');
 		$calendarRoot->disableListing = $disableListing;
 		$publicCalendarRoot = new PublicCalendarRoot($caldavBackend);

@@ -32,6 +32,9 @@ use Sabre\DAV\PropPatch;
 
 class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 
+	/** @var boolean */
+	protected $deletedCalendars=false;
+
 	public function __construct(BackendInterface $caldavBackend, $calendarInfo, IL10N $l10n) {
 		parent::__construct($caldavBackend, $calendarInfo);
 
@@ -171,7 +174,12 @@ class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 			]);
 			return;
 		}
-		parent::delete();
+
+		if ($this->calendarInfo['{'.CalDavBackend::NS_NEXTCLOUD.'}deleted-at'] !== null) {
+			$this->caldavBackend->purgeCalendar($this->calendarInfo['id']);
+		} else {
+			parent::delete();
+		}
 	}
 
 	function propPatch(PropPatch $propPatch) {
@@ -270,6 +278,31 @@ class Calendar extends \Sabre\CalDAV\Calendar implements IShareable {
 	 */
 	function getPublishStatus() {
 		return $this->caldavBackend->getPublishStatus($this);
+	}
+
+	/**
+	 * restore a calendar
+	 *
+	 * @return mixed
+	 */
+	function restore() {
+		return $this->caldavBackend->restoreCalendar($this->calendarInfo['id']);
+	}
+
+	/**
+	 * purge this calendar for good
+	 *
+	 * @return mixed
+	 */
+	function purge() {
+		return $this->caldavBackend->purgeCalendar($this->calendarInfo['id']);
+	}
+
+	/**
+	 * show deleted calendars in this request
+	 */
+	function deletedCalendarsMode() {
+		$this->deletedCalendars = true;
 	}
 
 	private function canWrite() {

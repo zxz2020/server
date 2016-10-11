@@ -127,6 +127,7 @@ class Server {
 			\OC::$server->getConfig(),
 			\OC::$server->getURLGenerator()
 		));
+		$this->server->addPlugin(new \OCA\DAV\CalDAV\Retention\RetentionPlugin());
 
 		// addressbook plugins
 		$this->server->addPlugin(new \OCA\DAV\CardDAV\Plugin());
