@@ -1824,13 +1824,14 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 	}
 
 	/**
+	 * Add a reminder for an event
+	 *
 	 * @param string $calendarId
 	 * @param string $objectUri
 	 * @param string $type
 	 * @param \DateTime $time
-	 * @param IUser $user
 	 */
-	public function addReminderForEvent($calendarId, $objectUri, $type, \DateTime $time, IUser $user) {
+	public function addReminderForEvent($calendarId, $objectUri, $type, \DateTime $time) {
 		$query = $this->db->getQueryBuilder();
 		$query->insert('calendar_reminders')
 			->values([
@@ -1838,12 +1839,13 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 				'objecturi' => $query->createNamedParameter($objectUri),
 				'type' => $query->createNamedParameter($type),
 				'notificationDate' => $query->createNamedParameter($time->getTimestamp()),
-				'userid' => $query->createNamedParameter($user->getUID())
 			]);
 		$query->execute();
 	}
 
 	/**
+	 * Cleans reminders in database
+	 *
 	 * @param string $calendarId
 	 * @param string $objectUri
 	 */
@@ -1856,13 +1858,26 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 			->execute();
 	}
 
+	/**
+	 * Get reminders
+	 *
+	 * @return array
+	 */
 	public function getReminders() {
 		$query = $this->db->getQueryBuilder();
-		$result = $query->select('*')
+		$result = $query->select('calendarid, objecturi, type, notificationDate')
 			->from('calendar_reminders')
 			->execute();
 
 		$rows = $result->fetchAll();
+
+		foreach ($rows as $row) {
+			$shares = $this->getShares($row['calendarid']);
+			$key = 'href';
+			$row['emails'] = array_map(function ($item) use ($key) {
+				return substr($item[$key], 10);
+			}, $shares);
+		}
 		return $rows;
 	}
 }
