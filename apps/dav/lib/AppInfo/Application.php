@@ -32,6 +32,7 @@ use OCA\DAV\Capabilities;
 use OCA\DAV\CardDAV\ContactsManager;
 use OCA\DAV\CardDAV\SyncService;
 use OCA\DAV\HookManager;
+use OCA\DAV\CalDAV\Reminder\ReminderService;
 use \OCP\AppFramework\App;
 use OCP\Contacts\IManager;
 use OCP\IUser;
@@ -78,6 +79,8 @@ class Application extends App {
 
 		// carddav/caldav sync event setup
 		$listener = function($event) {
+
+		$birthdayListener = function ($event) {
 			if ($event instanceof GenericEvent) {
 				/** @var BirthdayService $b */
 				$b = $this->getContainer()->query(BirthdayService::class);
@@ -92,6 +95,10 @@ class Application extends App {
 		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::createCard', $listener);
 		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::updateCard', $listener);
 		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::deleteCard', function($event) {
+
+		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::createCard', $birthdayListener);
+		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::updateCard', $birthdayListener);
+		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::deleteCard', function ($event) {
 			if ($event instanceof GenericEvent) {
 				/** @var BirthdayService $b */
 				$b = $this->getContainer()->query(BirthdayService::class);
@@ -163,6 +170,32 @@ class Application extends App {
 		$dispatcher->addListener('\OCA\DAV\CalDAV\CalDavBackend::createCalendarObject', $listener);
 		$dispatcher->addListener('\OCA\DAV\CalDAV\CalDavBackend::updateCalendarObject', $listener);
 		$dispatcher->addListener('\OCA\DAV\CalDAV\CalDavBackend::deleteCalendarObject', $listener);
+
+		$reminderListener = function ($event) {
+			if ($event instanceof GenericEvent) {
+				/** @var ReminderService $m */
+				$m = $this->getContainer()->query(ReminderService::class);
+				$m->onCalendarObjectChanged(
+					$event->getArgument('calendarId'),
+					$event->getArgument('objectUri'),
+					$event->getArgument('calendarData'),
+					$this->getContainer()->getServer()->getUserSession()->getUser()
+				);
+			}
+		};
+
+		$dispatcher->addListener('\OCA\DAV\CalDAV\CalDAVBackend::createCalendarObject', $reminderListener);
+		$dispatcher->addListener('\OCA\DAV\CalDAV\CalDAVBackend::updateCalendarObject', $reminderListener);
+		$dispatcher->addListener('\OCA\DAV\CalDAV\CalDAVBackend::deleteCalendarObject', function ($event) {
+			if ($event instanceof GenericEvent) {
+				/** @var ReminderService $m */
+				$m = $this->getContainer()->query(ReminderService::class);
+				$m->onCalendarObjectDeleted(
+					$event->getArgument('calendarId'),
+					$event->getArgument('objectUri')
+				);
+			}
+		});
 	}
 
 	public function getSyncService() {

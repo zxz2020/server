@@ -147,6 +147,7 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 	public function __construct(IDBConnection $db,
 								Principal $principalBackend,
 								IUserManager $userManager,
+								IConfig $config,
 								ISecureRandom $random,
 								EventDispatcherInterface $dispatcher,
 								$legacyEndpoint = false) {
@@ -920,6 +921,14 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 		));
 		$this->addChange($calendarId, $objectUri, 1);
 
+		if (!is_null($this->dispatcher)) {
+			$this->dispatcher->dispatch('\OCA\DAV\CalDAV\CalDAVBackend::createCalendarObject',
+				new GenericEvent(null, [
+					'calendarId' => $calendarId,
+					'objectUri' => $objectUri,
+					'calendarData' => $calendarData]));
+		}
+
 		return '"' . $extraData['etag'] . '"';
 	}
 
@@ -943,7 +952,6 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 	 */
 	function updateCalendarObject($calendarId, $objectUri, $calendarData) {
 		$extraData = $this->getDenormalizedData($calendarData);
-
 		$query = $this->db->getQueryBuilder();
 		$query->update('calendarobjects')
 				->set('calendardata', $query->createNamedParameter($calendarData, IQueryBuilder::PARAM_LOB))
@@ -972,6 +980,14 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 			));
 		}
 		$this->addChange($calendarId, $objectUri, 2);
+
+		if (!is_null($this->dispatcher)) {
+			$this->dispatcher->dispatch('\OCA\DAV\CalDAV\CalDAVBackend::updateCalendarObject',
+				new GenericEvent(null, [
+					'calendarId' => $calendarId,
+					'objectUri' => $objectUri,
+					'calendarData' => $calendarData]));
+		}
 
 		return '"' . $extraData['etag'] . '"';
 	}
@@ -1020,6 +1036,13 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 		$stmt->execute([$calendarId, $objectUri]);
 
 		$this->addChange($calendarId, $objectUri, 3);
+
+		if (!is_null($this->dispatcher)) {
+			$this->dispatcher->dispatch('\OCA\DAV\CalDAV\CalDAVBackend::deleteCalendarObject',
+				new GenericEvent(null, [
+					'calendarId' => $calendarId,
+					'objectUri' => $objectUri]));
+		}
 	}
 
 	/**
@@ -1798,5 +1821,48 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 			return "principals/$name";
 		}
 		return $principalUri;
+	}
+
+	/**
+	 * @param string $calendarId
+	 * @param string $objectUri
+	 * @param string $type
+	 * @param \DateTime $time
+	 * @param IUser $user
+	 */
+	public function addReminderForEvent($calendarId, $objectUri, $type, \DateTime $time, IUser $user) {
+		$query = $this->db->getQueryBuilder();
+		$query->insert('calendar_reminders')
+			->values([
+				'calendarid' => $query->createNamedParameter($calendarId),
+				'objecturi' => $query->createNamedParameter($objectUri),
+				'type' => $query->createNamedParameter($type),
+				'notificationDate' => $query->createNamedParameter($time->getTimestamp()),
+				'userid' => $query->createNamedParameter($user->getUID())
+			]);
+		$query->execute();
+	}
+
+	/**
+	 * @param string $calendarId
+	 * @param string $objectUri
+	 */
+	public function cleanRemindersForEvent($calendarId, $objectUri) {
+		$query = $this->db->getQueryBuilder();
+
+		$query->delete('calendar_reminders')
+			->where($query->expr()->eq('calendarid', $query->createNamedParameter($calendarId)))
+			->andWhere($query->expr()->eq('objecturi', $query->createNamedParameter($objectUri)))
+			->execute();
+	}
+
+	public function getReminders() {
+		$query = $this->db->getQueryBuilder();
+		$result = $query->select('*')
+			->from('calendar_reminders')
+			->execute();
+
+		$rows = $result->fetchAll();
+		return $rows;
 	}
 }

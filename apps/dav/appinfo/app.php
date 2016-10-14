@@ -23,6 +23,7 @@
  */
 
 use OCA\DAV\AppInfo\Application;
+use OCA\DAV\CalDAV\Reminder\Notifier;
 use OCA\DAV\CardDAV\CardDavBackend;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
@@ -54,3 +55,18 @@ $cm->register(function() use ($cm, $app) {
 		$app->setupContactsProvider($cm, $user->getUID());
 	}
 });
+
+$manager = \OC::$server->getNotificationManager();
+$manager->registerNotifier(function() {
+	return new Notifier(
+		\OC::$server->getL10NFactory()
+	);
+}, function() {
+	return [
+		'id' => 1,
+		'name' => 'dav'
+	];
+});
+
+$joblist = \OC::$server->getJobList();
+$joblist->add('OCA\DAV\CalDAV\Reminder\ReminderJob');
