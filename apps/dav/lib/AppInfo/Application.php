@@ -178,8 +178,7 @@ class Application extends App {
 				$m->onCalendarObjectChanged(
 					$event->getArgument('calendarId'),
 					$event->getArgument('objectUri'),
-					$event->getArgument('calendarData'),
-					$this->getContainer()->getServer()->getUserSession()->getUser()
+					$event->getArgument('calendarData')
 				);
 			}
 		};

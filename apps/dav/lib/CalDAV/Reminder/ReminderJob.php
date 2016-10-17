@@ -94,7 +94,7 @@ class ReminderJob extends TimedJob {
 
 		$message->setFrom([$from => $this->defaults->getName()]);
 		$message->setTo([$user->getEMailAddress() => 'Recipient']);
-		$message->setBody($calendar, 'text/calendar; charset=UTF-8');
+		$message->setBody($calendar['calendardata'], 'text/calendar; charset=UTF-8');
 		$this->mailer->send($message);
 	}
 
@@ -104,7 +104,7 @@ class ReminderJob extends TimedJob {
 		$notification->setApp('dav')
 			->setUser($user->getUID())
 			->setDateTime($time)
-			->setObject('calendar_reminder', $calendarId) // $type and $id
+			->setObject('calendar_reminder', $calendar['id']) // $type and $id
 			->setSubject('calendar_reminder', [$calendar]) // $subject and $parameters
 		;
 		$this->notifications->notify($notification);

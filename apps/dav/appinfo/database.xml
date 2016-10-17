@@ -757,10 +757,6 @@ CREATE TABLE calendarobjects (
 				<name>notificationDate</name>
 				<type>timestamp</type>
 			</field>
-			<field>
-				<name>userid</name>
-				<type>string</type>
-			</field>
 		</declaration>
 	</table>
 </database>

@@ -65,7 +65,7 @@ class ReminderService {
 	}
 
 	function onCalendarObjectDeleted($calendarId, $objectUri) {
-
+		$this->calDavBackEnd->cleanRemindersForEvent($calendarId, $objectUri);
 	}
 
 }

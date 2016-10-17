@@ -1872,6 +1872,11 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 		$rows = $result->fetchAll();
 
 		foreach ($rows as $row) {
+			if ($calendarData = $this->getCalendarObject($row['calendarid'], $row['objecturi'])) {
+				$row['data'] = $calendarData['calendardata'];
+			} else {
+				continue;
+			}
 			$shares = $this->getShares($row['calendarid']);
 			$key = 'href';
 			$row['emails'] = array_map(function ($item) use ($key) {
