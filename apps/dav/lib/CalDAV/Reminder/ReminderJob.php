@@ -64,7 +64,7 @@ class ReminderJob extends TimedJob {
 		$this->usermanager = $usermanager;
 
 		/** Run every 15 minutes */
-		//$this->setInterval(60 * 15);
+		$this->setInterval(10);
 	}
 
 	/**
@@ -73,20 +73,25 @@ class ReminderJob extends TimedJob {
 	public function run($arg) {
 		$reminders = $this->backend->getReminders();
 
-		// file_put_contents('log.log', print_r($reminders));
 		foreach ($reminders as $reminder) {
-			$calendar = $this->backend->getCalendarById($reminder['type']);
-			switch ($reminder['type']) {
-				case 'EMAIL':
-					$this->sendMail($this->usermanager->get($reminder['userid']), $calendar);
-					break;
-				case 'DISPLAY':
-					$this->sendNotification($this->usermanager->get($reminder['userid']), $reminder['notificationDate'], $calendar);
+			file_put_contents('log.log', var_export($reminder));
+			if ($reminder['notificationDate'] > (new \DateTime())->getTimestamp()) {
+				$calendar = $this->backend->getCalendarById($reminder['calendarId']);
+				switch ($reminder['type']) {
+					case 'EMAIL':
+						file_put_contents('log.mail', "Sending email");
+						$this->sendMail($this->usermanager->get($reminder['userid']), $calendar);
+						break;
+					case 'DISPLAY':
+						$this->sendNotification($this->usermanager->get($reminder['userid']), $reminder['notificationDate'], $calendar);
+						break;
+				}
+				$this->backend->removeReminder($reminder['id']);
 			}
 		}
 	}
 
-	private function sendMail(IUser $user, $calendar) {
+	private function sendMail(IUser $user, array $calendar) {
 		$message = $this->mailer->createMessage();
 		$message->setSubject($this->l10n->t('Your Subject'));
 
@@ -95,6 +100,7 @@ class ReminderJob extends TimedJob {
 		$message->setFrom([$from => $this->defaults->getName()]);
 		$message->setTo([$user->getEMailAddress() => 'Recipient']);
 		$message->setBody($calendar['calendardata'], 'text/calendar; charset=UTF-8');
+		file_put_contents('log.me', $calendar['calendardata']);
 		$this->mailer->send($message);
 	}
 

@@ -1858,6 +1858,14 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 			->execute();
 	}
 
+	public function removeReminder($reminderId) {
+		$query = $this->db->getQueryBuilder();
+
+		$query->delete('calendar_reminders')
+			->where($query->expr()->eq('id', $query->createNamedParameter($reminderId)))
+			->execute();
+	}
+
 	/**
 	 * Get reminders
 	 *
@@ -1865,24 +1873,38 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 	 */
 	public function getReminders() {
 		$query = $this->db->getQueryBuilder();
-		$result = $query->select('calendarid, objecturi, type, notificationDate')
+		$fields = ['id', 'calendarId', 'objecturi', 'type', 'notificationDate'];
+		$result = $query->select($fields)
 			->from('calendar_reminders')
 			->execute();
 
-		$rows = $result->fetchAll();
+		$reminders = [];
+		while($row = $result->fetch(\PDO::FETCH_ASSOC)) {
+			$reminder = [
+				'id' => $row['id'],
+				'calendarId' => $row['calendarId'],
+				'objecturi' => $row['objecturi'],
+				'type' => $row['type'],
+				'notificationDate' => $row['notificationDate']
+			];
 
-		foreach ($rows as $row) {
-			if ($calendarData = $this->getCalendarObject($row['calendarid'], $row['objecturi'])) {
-				$row['data'] = $calendarData['calendardata'];
-			} else {
-				continue;
+			if ($calendarData = $this->getCalendarObject($row['calendarId'], $row['objecturi'])) {
+				$reminder['data'] = $calendarData['calendardata'];
 			}
-			$shares = $this->getShares($row['calendarid']);
-			$key = 'href';
-			$row['emails'] = array_map(function ($item) use ($key) {
-				return substr($item[$key], 10);
-			}, $shares);
+
+			if ($calendar = $this->getCalendarById($row['calendarId'])) {
+				$reminder['owner'] = substr($calendar['principaluri'], 10);
+			}
+
+			if ($shares = $this->getShares($row['calendarId'])) {
+				$key = 'href';
+				$reminder['sharees'] = array_map(function ($item) use ($key) {
+					return substr($item[$key], 10);
+				}, $shares);
+			}
+
+			$reminders[$reminder['id']] = $reminder;
 		}
-		return $rows;
+		return $reminders;
 	}
 }

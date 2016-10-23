@@ -21,7 +21,6 @@
 namespace OCA\DAV\CalDAV\Reminder;
 
 use OCA\DAV\CalDAV\CalDavBackend;
-use OCP\IUser;
 use Sabre\VObject;
 use Sabre\VObject\Component\VAlarm;
 

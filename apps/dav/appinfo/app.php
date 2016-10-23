@@ -69,4 +69,6 @@ $manager->registerNotifier(function() {
 });
 
 $joblist = \OC::$server->getJobList();
-$joblist->add('OCA\DAV\CalDAV\Reminder\ReminderJob');
+if (!$joblist->has('OCA\DAV\CalDAV\Reminder\ReminderJob', null)) {
+	$joblist->add('OCA\DAV\CalDAV\Reminder\ReminderJob');
+}
