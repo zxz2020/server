@@ -547,12 +547,7 @@ var OCdialogs = {
 			addConflict($conflicts, original, replacement);
 
 			var count = $(dialogId+ ' .conflict').length;
-			var title = n('core',
-							'{count} file conflict',
-							'{count} file conflicts',
-							count,
-							{count:count}
-						);
+			var title = n('core', 'Some files already exist');
 			$(dialogId).parent().children('.oc-dialog-title').text(title);
 
 			//recalculate dimensions
@@ -562,17 +557,16 @@ var OCdialogs = {
 			//create dialog
 			this._fileexistsshown = true;
 			$.when(this._getFileExistsTemplate()).then(function($tmpl) {
-				var title = t('core','One file conflict');
+				var title = t('core','The file already exists');
 				var $dlg = $tmpl.octemplate({
 					dialog_name: dialogName,
 					title: title,
 					type: 'fileexists',
 
-					allnewfiles: t('core','New Files'),
-					allexistingfiles: t('core','Already existing files'),
-
-					why: t('core','Which files do you want to keep?'),
-					what: t('core','If you select both versions, the copied file will have a number added to its name.')
+					allnewfiles: t('core','Overwrite with new files'),
+					allexistingfiles: t('core','Keep existing files'),
+					allnumberedfiles: t('core','Add new files with number'),
+					details: t('core','Details')
 				});
 				$('body').append($dlg);
 
@@ -593,7 +587,7 @@ var OCdialogs = {
 					},
 					{
 						text: t('core', 'Continue'),
-						classes: 'continue',
+						classes: 'continue, primary',
 						click: function(){
 							if ( typeof controller.onContinue !== 'undefined') {
 								controller.onContinue($(dialogId + ' .conflict'));
@@ -623,6 +617,11 @@ var OCdialogs = {
 					var checkedCount = $dlg.find('.conflicts .checkbox:checked').length;
 					$primaryButton.prop('disabled', checkedCount === 0);
 				}
+
+				// expand file conflict details
+				$(dialogId).find('.conflicts-show').on('click', function() {
+					$('.conflicts').slideDown();
+				});
 
 				//add checkbox toggling actions
 				$(dialogId).find('.allnewfiles').on('click', function() {
