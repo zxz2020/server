@@ -1530,9 +1530,7 @@ class ViewTest extends \Test\TestCase {
 	private function createTestMovableMountPoints($mountPoints) {
 		$mounts = [];
 		foreach ($mountPoints as $mountPoint) {
-			$storage = $this->getMockBuilder('\OC\Files\Storage\Temporary')
-				->setMethods([])
-				->getMock();
+			$storage = new Temporary();
 
 			$mounts[] = $this->getMockBuilder(TestMoveableMountPoint::class)
 				->setMethods(['moveMount'])
@@ -1605,6 +1603,8 @@ class ViewTest extends \Test\TestCase {
 	public function testMoveMountPointIntoSharedFolder() {
 		$this->loginAsUser($this->user);
 
+		$userFolder = \OC::$server->getUserFolder($this->user);
+
 		list($mount1) = $this->createTestMovableMountPoints([
 			$this->user . '/files/mount1',
 		]);
@@ -1617,15 +1617,23 @@ class ViewTest extends \Test\TestCase {
 		$view->mkdir('shareddir/sub');
 		$view->mkdir('shareddir/sub2');
 
-		$fileId = $view->getFileInfo('shareddir')->getId();
 		$userObject = \OC::$server->getUserManager()->createUser('test2', 'IHateNonMockableStaticClasses');
-		$this->assertTrue(\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, 'test2', \OCP\Constants::PERMISSION_READ));
+
+		$sharedFolder = \OC::$server->getUserFolder($this->user)->get('shareddir');
+		$shareManager = \OC::$server->getShareManager();
+		$share = $shareManager->newShare();
+		$share->setSharedBy($this->user);
+		$share->setShareType(\OCP\Share::SHARE_TYPE_USER);
+		$share->setNode($sharedFolder);
+		$share->setSharedWith('test2');
+		$share->setPermissions(\OCP\Constants::PERMISSION_READ);
+		$share = $shareManager->createShare($share);
 
 		$this->assertFalse($view->rename('mount1', 'shareddir'), 'Cannot overwrite shared folder');
 		$this->assertFalse($view->rename('mount1', 'shareddir/sub'), 'Cannot move mount point into shared folder');
 		$this->assertFalse($view->rename('mount1', 'shareddir/sub/sub2'), 'Cannot move mount point into shared subfolder');
 
-		$this->assertTrue(\OCP\Share::unshare('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, 'test2'));
+		$shareManager->deleteShare($share);
 		$userObject->delete();
 	}
 
