@@ -57,3 +57,5 @@ $templateManager->registerTemplate('application/vnd.oasis.opendocument.spreadshe
 		'name' => $l->t('Recent'),
 	];
 });
+
+\OCP\Util::connectHook('OC_User', 'post_login', '\OCA\Files\LoginHook', 'afterLoginHook');
