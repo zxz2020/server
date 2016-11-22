@@ -62,4 +62,50 @@ class ClassificationTest extends AbstractCalDavBackendTest {
 		$object = $this->backend->getCalendarObject($calendarId, $eventUri);
 		$this->assertEquals(CalDavBackend::CLASSIFICATION_PUBLIC, $object['classification']);
 	}
+
+	/** copy of test() with a specific failing data set */
+	public function testMigration() {
+		// setup data
+		$calendarId = $this->createTestCalendar();
+
+		$calData = <<<EOD
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Apple Inc.//Mac OS X 10.11.2//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+TRANSP:OPAQUE
+DTEND;VALUE=:20151223T223000Z
+LAST-MODIFIED:20151214T091032Z
+ORGANIZER;CN="User 1":mailto:user1@example.com
+UID:1234567890@example.com
+DTSTAMP:20151214T091032Z
+STATUS:CONFIRMED
+SEQUENCE:0
+SUMMARY:Ein Geburtstag
+DTSTART:20151223T173000Z
+X-APPLE-TRAVEL-ADVISORY-BEHAVIOR:AUTOMATIC
+CREATED:20151214T091032Z
+END:VEVENT
+END:VCALENDAR
+EOD;
+		$eventUri = $this->getUniqueID('event');
+
+		$this->dispatcher->expects($this->at(0))
+			->method('dispatch')
+			->with('\OCA\DAV\CalDAV\CalDavBackend::createCalendarObject');
+
+		$this->backend->createCalendarObject($calendarId, $eventUri, $calData);
+
+		// run migration
+		$c = new Classification($this->backend, $this->userManager);
+
+		/** @var IUser | \PHPUnit_Framework_MockObject_MockObject $user */
+		$user = $this->getMockBuilder('OCP\IUser')
+			->disableOriginalConstructor()
+			->getMock();
+		$user->expects($this->once())->method('getUID')->willReturn('caldav-unit-test');
+
+		$c->runForUser($user);
+	}
 }
