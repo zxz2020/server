@@ -40,6 +40,7 @@ class LegacyDAVACL extends DavAclPlugin {
 	 */
 	function getCurrentUserPrincipal() {
 		$principalV1 = parent::getCurrentUserPrincipal();
+		return $principalV1;
 		if (is_null($principalV1)) {
 			return $principalV1;
 		}

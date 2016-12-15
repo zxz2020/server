@@ -131,6 +131,9 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 	/** @var EventDispatcherInterface */
 	private $dispatcher;
 
+	/** @var bool */
+	private $legacyEndpoint;
+
 	/**
 	 * CalDavBackend constructor.
 	 *
@@ -144,13 +147,15 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 								Principal $principalBackend,
 								IUserManager $userManager,
 								ISecureRandom $random,
-								EventDispatcherInterface $dispatcher) {
+								EventDispatcherInterface $dispatcher,
+								$legacyEndpoint = false) {
 		$this->db = $db;
 		$this->principalBackend = $principalBackend;
 		$this->userManager = $userManager;
 		$this->sharingBackend = new Backend($this->db, $principalBackend, 'calendar');
 		$this->random = $random;
 		$this->dispatcher = $dispatcher;
+		$this->legacyEndpoint = $legacyEndpoint;
 	}
 
 	/**
@@ -230,12 +235,12 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 			$calendar = [
 				'id' => $row['id'],
 				'uri' => $row['uri'],
-				'principaluri' => $this->convertPrincipal($row['principaluri'], false),
+				'principaluri' => $this->convertPrincipal($row['principaluri'], !$this->legacyEndpoint),
 				'{' . Plugin::NS_CALENDARSERVER . '}getctag' => 'http://sabre.io/ns/sync/' . ($row['synctoken']?$row['synctoken']:'0'),
 				'{http://sabredav.org/ns}sync-token' => $row['synctoken']?$row['synctoken']:'0',
 				'{' . Plugin::NS_CALDAV . '}supported-calendar-component-set' => new SupportedCalendarComponentSet($components),
 				'{' . Plugin::NS_CALDAV . '}schedule-calendar-transp' => new ScheduleCalendarTransp($row['transparent']?'transparent':'opaque'),
-				'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}owner-principal' => $principalUri,
+				'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}owner-principal' => $this->convertPrincipal($principalUri, !$this->legacyEndpoint),
 			];
 
 			foreach($this->propertyMap as $xmlName=>$dbName) {
@@ -282,12 +287,12 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 			$calendar = [
 				'id' => $row['id'],
 				'uri' => $uri,
-				'principaluri' => $principalUri,
+				'principaluri' => $this->convertPrincipal($principalUri, !$this->legacyEndpoint),
 				'{' . Plugin::NS_CALENDARSERVER . '}getctag' => 'http://sabre.io/ns/sync/' . ($row['synctoken']?$row['synctoken']:'0'),
 				'{http://sabredav.org/ns}sync-token' => $row['synctoken']?$row['synctoken']:'0',
 				'{' . Plugin::NS_CALDAV . '}supported-calendar-component-set' => new SupportedCalendarComponentSet($components),
 				'{' . Plugin::NS_CALDAV . '}schedule-calendar-transp' => new ScheduleCalendarTransp($row['transparent']?'transparent':'opaque'),
-				'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}owner-principal' => $row['principaluri'],
+				'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}owner-principal' => $this->convertPrincipal($row['principaluri'], !$this->legacyEndpoint),
 				'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}read-only' => (int)$row['access'] === Backend::ACCESS_READ,
 			];
 
@@ -328,7 +333,7 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 			$calendar = [
 				'id' => $row['id'],
 				'uri' => $row['uri'],
-				'principaluri' => $this->convertPrincipal($row['principaluri'], false),
+				'principaluri' => $this->convertPrincipal($row['principaluri'], !$this->legacyEndpoint),
 				'{' . Plugin::NS_CALENDARSERVER . '}getctag' => 'http://sabre.io/ns/sync/' . ($row['synctoken']?$row['synctoken']:'0'),
 				'{http://sabredav.org/ns}sync-token' => $row['synctoken']?$row['synctoken']:'0',
 				'{' . Plugin::NS_CALDAV . '}supported-calendar-component-set' => new SupportedCalendarComponentSet($components),
@@ -392,12 +397,12 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 			$calendar = [
 				'id' => $row['id'],
 				'uri' => $row['publicuri'],
-				'principaluri' => $row['principaluri'],
+				'principaluri' => $this->convertPrincipal($row['principaluri'], !$this->legacyEndpoint),
 				'{' . Plugin::NS_CALENDARSERVER . '}getctag' => 'http://sabre.io/ns/sync/' . ($row['synctoken']?$row['synctoken']:'0'),
 				'{http://sabredav.org/ns}sync-token' => $row['synctoken']?$row['synctoken']:'0',
 				'{' . Plugin::NS_CALDAV . '}supported-calendar-component-set' => new SupportedCalendarComponentSet($components),
 				'{' . Plugin::NS_CALDAV . '}schedule-calendar-transp' => new ScheduleCalendarTransp($row['transparent']?'transparent':'opaque'),
-				'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}owner-principal' => $row['principaluri'],
+				'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}owner-principal' => $this->convertPrincipal($row['principaluri'], $this->legacyEndpoint),
 				'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}read-only' => (int)$row['access'] === Backend::ACCESS_READ,
 				'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}public' => (int)$row['access'] === self::ACCESS_PUBLIC,
 			];
@@ -456,12 +461,12 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 		$calendar = [
 			'id' => $row['id'],
 			'uri' => $row['publicuri'],
-			'principaluri' => $row['principaluri'],
+			'principaluri' => $this->convertPrincipal($row['principaluri'], !$this->legacyEndpoint),
 			'{' . Plugin::NS_CALENDARSERVER . '}getctag' => 'http://sabre.io/ns/sync/' . ($row['synctoken']?$row['synctoken']:'0'),
 			'{http://sabredav.org/ns}sync-token' => $row['synctoken']?$row['synctoken']:'0',
 			'{' . Plugin::NS_CALDAV . '}supported-calendar-component-set' => new SupportedCalendarComponentSet($components),
 			'{' . Plugin::NS_CALDAV . '}schedule-calendar-transp' => new ScheduleCalendarTransp($row['transparent']?'transparent':'opaque'),
-			'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}owner-principal' => $row['principaluri'],
+			'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}owner-principal' => $this->convertPrincipal($row['principaluri'], !$this->legacyEndpoint),
 			'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}read-only' => (int)$row['access'] === Backend::ACCESS_READ,
 			'{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}public' => (int)$row['access'] === self::ACCESS_PUBLIC,
 		];
@@ -510,7 +515,7 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 		$calendar = [
 			'id' => $row['id'],
 			'uri' => $row['uri'],
-			'principaluri' => $row['principaluri'],
+			'principaluri' => $this->convertPrincipal($row['principaluri'], !$this->legacyEndpoint),
 			'{' . Plugin::NS_CALENDARSERVER . '}getctag' => 'http://sabre.io/ns/sync/' . ($row['synctoken']?$row['synctoken']:'0'),
 			'{http://sabredav.org/ns}sync-token' => $row['synctoken']?$row['synctoken']:'0',
 			'{' . Plugin::NS_CALDAV . '}supported-calendar-component-set' => new SupportedCalendarComponentSet($components),
@@ -554,7 +559,7 @@ class CalDavBackend extends AbstractBackend implements SyncSupport, Subscription
 		$calendar = [
 			'id' => $row['id'],
 			'uri' => $row['uri'],
-			'principaluri' => $row['principaluri'],
+			'principaluri' => $this->convertPrincipal($row['principaluri'], !$this->legacyEndpoint),
 			'{' . Plugin::NS_CALENDARSERVER . '}getctag' => 'http://sabre.io/ns/sync/' . ($row['synctoken']?$row['synctoken']:'0'),
 			'{http://sabredav.org/ns}sync-token' => $row['synctoken']?$row['synctoken']:'0',
 			'{' . Plugin::NS_CALDAV . '}supported-calendar-component-set' => new SupportedCalendarComponentSet($components),
