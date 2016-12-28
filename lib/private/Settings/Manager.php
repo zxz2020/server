@@ -140,7 +140,9 @@ class Manager implements IManager {
 		$data = $resultStatement->fetchAll();
 		$resultStatement->closeCursor();
 
-		return array_map(function($row) { return $row['class']; }, $data);
+		return array_map(function ($row) {
+			return $row['class'];
+		}, $data);
 	}
 
 	/**
@@ -341,8 +343,7 @@ class Manager implements IManager {
 			->addSelect('s.priority')
 			->from(self::TABLE_ADMIN_SECTIONS, 's')
 			->from(self::TABLE_ADMIN_SETTINGS, 'f')
-			->where($query->expr()->eq('s.id', 'f.section'))
-		;
+			->where($query->expr()->eq('s.id', 'f.section'));
 		$result = $query->execute();
 
 		while($row = $result->fetch()) {
@@ -358,9 +359,20 @@ class Manager implements IManager {
 		$result->closeCursor();
 
 		ksort($sections);
-		return $sections;
+
+		$counts = $this->getAdminSettingsCountFromDB();
+
+		return array_map(function (array $sections) use ($counts) {
+			return array_filter($sections, function (ISection $section) use ($counts) {
+				return (count($this->getBuiltInAdminSettings($section->getID())) > 0) || $counts[$section->getID()] > 0;
+			});
+		}, $sections);
 	}
 
+	/**
+	 * @param string $section
+	 * @return ISection[]
+	 */
 	private function getBuiltInAdminSettings($section) {
 		$forms = [];
 		try {
@@ -395,6 +407,20 @@ class Manager implements IManager {
 			// skip
 		}
 		return $forms;
+	}
+
+	private function getAdminSettingsCountFromDB() {
+		$query = $this->dbc->getQueryBuilder();
+		$query->select('section')
+			->selectAlias($query->createFunction('COUNT(' . $query->getColumnName('class') . ')'), 'count')
+			->from(self::TABLE_ADMIN_SETTINGS)
+			->groupBy('section');
+
+		$result = $query->execute();
+		return array_reduce($result->fetchAll(), function ($counts, $row) {
+			$counts[$row['section']] = $row['count'];
+			return $counts;
+		}, []);
 	}
 
 	private function getAdminSettingsFromDB($section, &$settings) {
