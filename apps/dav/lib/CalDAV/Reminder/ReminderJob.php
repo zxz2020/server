@@ -74,12 +74,10 @@ class ReminderJob extends TimedJob {
 		$reminders = $this->backend->getReminders();
 
 		foreach ($reminders as $reminder) {
-			file_put_contents('log.log', var_export($reminder));
 			if ($reminder['notificationDate'] > (new \DateTime())->getTimestamp()) {
 				$calendar = $this->backend->getCalendarById($reminder['calendarId']);
 				switch ($reminder['type']) {
 					case 'EMAIL':
-						file_put_contents('log.mail', "Sending email");
 						$this->sendMail($this->usermanager->get($reminder['userid']), $calendar);
 						break;
 					case 'DISPLAY':
@@ -100,7 +98,6 @@ class ReminderJob extends TimedJob {
 		$message->setFrom([$from => $this->defaults->getName()]);
 		$message->setTo([$user->getEMailAddress() => 'Recipient']);
 		$message->setBody($calendar['calendardata'], 'text/calendar; charset=UTF-8');
-		file_put_contents('log.me', $calendar['calendardata']);
 		$this->mailer->send($message);
 	}
 
