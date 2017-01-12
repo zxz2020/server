@@ -77,9 +77,6 @@ class Application extends App {
 			}
 		});
 
-		// carddav/caldav sync event setup
-		$listener = function($event) {
-
 		$birthdayListener = function ($event) {
 			if ($event instanceof GenericEvent) {
 				/** @var BirthdayService $b */
@@ -91,10 +88,6 @@ class Application extends App {
 				);
 			}
 		};
-
-		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::createCard', $listener);
-		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::updateCard', $listener);
-		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::deleteCard', function($event) {
 
 		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::createCard', $birthdayListener);
 		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::updateCard', $birthdayListener);
