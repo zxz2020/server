@@ -48,3 +48,17 @@
 
 	OC.Settings.UserSettings = UserSettings;
 })();
+
+$(document).ready(function () {
+	$('#app-content').on('scroll', function () {
+		var currentPos = $(this).scrollTop();
+
+		$('#app-content > div:not(#app-navigation-toggle)').each(function() {
+			if ($(this).position().top + ($(this).outerHeight()/3) > 0) {
+				$('#app-navigation li.active').removeClass('active');
+				$('#app-navigation > ul').find('a[href="#'+$(this).attr('id')+'"]').parent('li').addClass('active');
+				return false; // break
+			}
+		});
+	});
+});
