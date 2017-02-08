@@ -25,7 +25,10 @@ namespace Test;
  * FIXME Remove this once phpunit 5 is the lowest supported version, by reverting:
  * https://github.com/nextcloud/server/pull/2137
  */
-if (version_compare(\PHPUnit_Runner_Version::id(), '5.0.0', '>=')) {
+
+if (class_exists('PHPUnit\Runner\Version') && version_compare(\PHPUnit\Runner\Version::id(), '6.0.0', '>=')) {
+	abstract class TestCasePhpUnitCompatibility extends TestCasePhpUnit6 {}
+} else if (version_compare(\PHPUnit_Runner_Version::id(), '5.0.0', '>=')) {
 	abstract class TestCasePhpUnitCompatibility extends TestCasePhpUnit5 {}
 } else {
 	abstract class TestCasePhpUnitCompatibility extends TestCasePhpUnit4 {}
