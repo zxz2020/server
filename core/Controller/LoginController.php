@@ -28,6 +28,10 @@
 
 namespace OC\Core\Controller;
 
+use OC\Authentication\Exceptions\InvalidTokenException;
+use OC\Authentication\Exceptions\PasswordlessTokenException;
+use OC\Authentication\Token\IProvider;
+use OC\Authentication\Token\IToken;
 use OC\Authentication\TwoFactorAuth\Manager;
 use OC\Security\Bruteforce\Throttler;
 use OC\User\Session;
@@ -35,10 +39,10 @@ use OC_App;
 use OC_Util;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Response;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\RedirectResponse;
 use OCP\AppFramework\Http\TemplateResponse;
-use OCP\Authentication\TwoFactorAuth\IProvider;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ISession;
@@ -47,6 +51,8 @@ use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
 use OC\Hooks\PublicEmitter;
+use OCP\Security\ISecureRandom;
+use OCP\Session\Exceptions\SessionNotAvailableException;
 
 class LoginController extends Controller {
 	/** @var IUserManager */
@@ -63,6 +69,12 @@ class LoginController extends Controller {
 	private $twoFactorManager;
 	/** @var Throttler */
 	private $throttler;
+	/** @var IProvider */
+	private $tokenProvider;
+	/** @var ISecureRandom */
+	private $random;
+	/** @var string */
+	private $userId;
 
 	/**
 	 * @param string $appName
@@ -74,8 +86,10 @@ class LoginController extends Controller {
 	 * @param IURLGenerator $urlGenerator
 	 * @param Manager $twoFactorManager
 	 * @param Throttler $throttler
+	 * @param IProvider $tokenProvider
+	 * @param string $userId
 	 */
-	function __construct($appName,
+	public function __construct($appName,
 						 IRequest $request,
 						 IUserManager $userManager,
 						 IConfig $config,
@@ -83,7 +97,10 @@ class LoginController extends Controller {
 						 IUserSession $userSession,
 						 IURLGenerator $urlGenerator,
 						 Manager $twoFactorManager,
-						 Throttler $throttler) {
+						 Throttler $throttler,
+						 IProvider $tokenProvider,
+						 $userId,
+						 ISecureRandom $random) {
 		parent::__construct($appName, $request);
 		$this->userManager = $userManager;
 		$this->config = $config;
@@ -92,6 +109,9 @@ class LoginController extends Controller {
 		$this->urlGenerator = $urlGenerator;
 		$this->twoFactorManager = $twoFactorManager;
 		$this->throttler = $throttler;
+		$this->tokenProvider = $tokenProvider;
+		$this->userId = $userId;
+		$this->random = $random;
 	}
 
 	/**
@@ -318,5 +338,40 @@ class LoginController extends Controller {
 		$confirmTimestamp = time();
 		$this->session->set('last-password-confirm', $confirmTimestamp);
 		return new DataResponse(['lastLogin' => $confirmTimestamp], Http::STATUS_OK);
+	}
+
+	/**
+	 * @NoAdminUserRequired
+	 * @UseSession
+	 */
+	public function getAppPassword() {
+		try {
+			$sessionId = $this->session->getId();
+		} catch (SessionNotAvailableException $ex) {
+			$response = new Response();
+			$response->setStatus(Http::STATUS_FORBIDDEN);
+			return $response;
+		}
+
+		try {
+			$sessionToken = $this->tokenProvider->getToken($sessionId);
+			$loginName = $sessionToken->getLoginName();
+			try {
+				$password = $this->tokenProvider->getPassword($sessionToken, $sessionId);
+			} catch (PasswordlessTokenException $ex) {
+				$password = null;
+			}
+		} catch (InvalidTokenException $ex) {
+			$response = new Response();
+			$response->setStatus(Http::STATUS_FORBIDDEN);
+			return $response;
+		}
+
+		$name = $this->request->getHeader('USER_AGENT') !== null ? $this->request->getHeader('USER_AGENT') : 'unknown';
+
+		$token = $this->random->generate(60);
+		$this->tokenProvider->generateToken($token, $this->userId, $loginName, $password, $name, IToken::PERMANENT_TOKEN, IToken::DO_NOT_REMEMBER);
+
+		return new RedirectResponse('nc://' . urlencode($loginName) . ':' . urlencode($token) . '@' . $this->request->getServerHost());
 	}
 }

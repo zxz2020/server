@@ -49,6 +49,7 @@ $application->registerRoutes($this, [
 		['name' => 'login#confirmPassword', 'url' => '/login/confirm', 'verb' => 'POST'],
 		['name' => 'login#showLoginForm', 'url' => '/login', 'verb' => 'GET'],
 		['name' => 'login#logout', 'url' => '/logout', 'verb' => 'GET'],
+		['name' => 'login#getAppPassword', 'url' => '/token', 'verb' => 'GET'],
 		['name' => 'TwoFactorChallenge#selectChallenge', 'url' => '/login/selectchallenge', 'verb' => 'GET'],
 		['name' => 'TwoFactorChallenge#showChallenge', 'url' => '/login/challenge/{challengeProviderId}', 'verb' => 'GET'],
 		['name' => 'TwoFactorChallenge#solveChallenge', 'url' => '/login/challenge/{challengeProviderId}', 'verb' => 'POST'],
