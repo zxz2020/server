@@ -325,6 +325,10 @@ class Generator {
 			$preview->resize(max($width, $height));
 		}
 
+		if (!$preview->valid()) {
+			throw new \InvalidArgumentException('Failed to generate preview');
+		}
+
 		$path = $this->generatePath($width, $height, $crop);
 		try {
 			$file = $previewFolder->newFile($path);
